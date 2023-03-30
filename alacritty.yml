@@ -62,7 +62,7 @@ window:
   # Values for `decorations` (macOS only):
   #     - transparent: Title bar, transparent background and title bar buttons
   #     - buttonless: Title bar, transparent background and no title bar buttons
-  #decorations: full
+  decorations: buttonless 
 
   # Background opacity
   #
@@ -164,13 +164,14 @@ font:
     #
     # If the bold italic family is not specified, it will fall back to the
     # value specified for the normal font.
-    family: Bold Italic 
+    family: Hack Nerd Font 
+    style: Bold Italic
 
     # The `style` can be specified to pick a specific face.
     #style: Bold Italic
 
   # Point size
-  #size: 11.0
+  size: 15.0
 
   # Offset is the extra space around each character. `offset.y` can be thought
   # of as modifying the line spacing, and `offset.x` as modifying the letter

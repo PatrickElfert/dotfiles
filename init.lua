@@ -1,10 +1,14 @@
+vim.g.loaded_netrw = 1
+vim.g.loaded_netrwPlugin = 1
 
+vim.opt.termguicolors = true
 
 -- Setup Plugins
 local Plug = vim.fn['plug#']
 
 vim.call('plug#begin', '~/AppData/Local/nvim')
-Plug('dracula/vim')
+Plug ('nvim-tree/nvim-web-devicons')
+Plug ('nvim-tree/nvim-tree.lua')
 Plug('mechatroner/rainbow_csv')
 Plug('ryanoasis/vim-devicons')
 Plug('prettier/vim-prettier', { ['do'] = 'yarn install --frozen-lockfile --production' })
@@ -24,16 +28,15 @@ Plug('BurntSushi/ripgrep')
 Plug('nvim-lua/popup.nvim')
 Plug('nvim-lua/plenary.nvim')
 Plug('nvim-telescope/telescope.nvim')
-Plug('github/copilot.vim')
 Plug('f-person/git-blame.nvim')
-Plug('nvim-lualine/lualine.nvim')
 Plug('kyazdani42/nvim-web-devicons')
 Plug ('windwp/nvim-autopairs')
-Plug ('nvim-telescope/telescope-file-browser.nvim')
 Plug ('glepnir/lspsaga.nvim', { ['branch'] = 'main' })
 Plug ('tpope/vim-fugitive')
 Plug ('mfussenegger/nvim-jdtls')
 Plug ('catppuccin/nvim', { ['as'] = 'catppuccin' })
+Plug ('feline-nvim/feline.nvim')
+Plug ('Hoffs/omnisharp-extended-lsp.nvim')
 vim.call('plug#end')
 
 require("catppuccin").setup({
@@ -46,6 +49,13 @@ vim.cmd([[
 colorscheme catppuccin 
 syntax enable
 ]])
+
+-- Statusline
+local ctp_feline = require('catppuccin.groups.integrations.feline')
+
+require("feline").setup({
+    components = ctp_feline.get(),
+})
 
 -- Treesitter
 local status, ts = pcall(require, 'nvim-treesitter.configs')
@@ -61,6 +71,9 @@ ts.setup {
   disable = {},
  },
  ensure_installed = {
+  "html",
+  "css",
+  "c_sharp",
   "vim",
   "lua",
   "typescript",
@@ -74,13 +87,6 @@ ts.setup {
 
 -- Autopairs
 require("nvim-autopairs").setup()
-
--- Lualine
-require('lualine').setup({
-  options = {
-    theme = 'tokyonight',
-  },
-})
 
 -- Vim Settings
 vim.cmd([[
@@ -98,8 +104,11 @@ set shiftwidth=2
 
 vim.g.mapleader = " "
 
+-- File Tree
+require("nvim-tree").setup({view = {side = "right", width = 50}})
+vim.keymap.set('n',"<leader>fb", ':NvimTreeFindFileToggle<cr>', opts)
 
-vim.keymap.set('n', '<leader>gf',  ":GoFmt<CR>", { noremap = true, silent = true })
+
 
 -- Git Blame
 vim.g.gitblame_enabled = 0
@@ -118,14 +127,16 @@ telescope.setup {
     file_ignore_patterns = { "node_modules", ".git" },
   }
 }
-telescope.load_extension "file_browser"
 vim.keymap.set('n', '<leader>ff',  builtin.find_files, {})
-vim.keymap.set('n', '<leader>fb',  ":Telescope file_browser<CR>", {noremap = true})
 vim.keymap.set('n', '<leader>fg', builtin.live_grep, {})
 
 -- LSP Saga
 local saga = require('lspsaga')
-saga.setup({})
+saga.setup {
+   ui = {
+        kind = require("catppuccin.groups.integrations.lsp_saga").custom_kind(),
+    }, 
+}
 
 -- LSP 
 local opts = { noremap = true, silent = true }
@@ -138,22 +149,21 @@ vim.keymap.set('n', '<leader>od', '<Cmd>Lspsaga hover_doc<CR>', opts)
 
 -- LSP Config
 local nvim_lsp = require('lspconfig')
-local capabilities = require('cmp_nvim_lsp').update_capabilities(vim.lsp.protocol.make_client_capabilities())
-
--- Omnisharp Config
-nvim_lsp.omnisharp.setup {
-  capabilities = capabilities,  
-  on_attach = function(_, bufnr)
-    vim.api.nvim_buf_set_option(bufnr, 'omnifunc', 'v:lua.vim.lsp.omnifunc')
-  end,
-  cmd = { "/usr/bin/omnisharp", "--languageserver" , "--hostPID", tostring(pid) },
-}
 
 -- Angular
 nvim_lsp.angularls.setup{}
 
 -- Typescript
 nvim_lsp.tsserver.setup{}
+
+local pid = vim.fn.getpid()
+-- Omnisharp Config
+nvim_lsp.omnisharp.setup {
+  handlers = {
+    ["textDocument/definition"] = require('omnisharp_extended').handler,
+  },
+  cmd = {"dotnet", "/Users/patrickelfert/Documents/omnisharp-osx-arm64-net6.0/OmniSharp.dll", "--languageserver" , "--hostPID", tostring(pid) },
+}
 
 -- Debugging 
 
