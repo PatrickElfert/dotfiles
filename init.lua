@@ -71,6 +71,8 @@ ts.setup {
   disable = {},
  },
  ensure_installed = {
+  "markdown",
+  "markdown_inline",
   "html",
   "css",
   "c_sharp",
@@ -159,10 +161,11 @@ nvim_lsp.tsserver.setup{}
 local pid = vim.fn.getpid()
 -- Omnisharp Config
 nvim_lsp.omnisharp.setup {
-  handlers = {
-    ["textDocument/definition"] = require('omnisharp_extended').handler,
-  },
-  cmd = {"dotnet", "/Users/patrickelfert/Documents/omnisharp-osx-arm64-net6.0/OmniSharp.dll", "--languageserver" , "--hostPID", tostring(pid) },
+  capabilities = capabilities,
+  on_attach = function(_, bufnr)
+    vim.api.nvim_buf_set_option(bufnr, 'omnifunc', 'v:lua.vim.lsp.omnifunc')
+  end,
+  cmd = { "/usr/bin/omnisharp", "--languageserver" , "--hostPID", tostring(pid) },
 }
 
 -- Debugging 
@@ -170,20 +173,61 @@ nvim_lsp.omnisharp.setup {
 local jester = require("jester")
 local dap = require("dap")
 local dapui = require("dapui")
+local widgets = require("dap.ui.widgets")
+
+vim.fn.sign_define('DapBreakpoint',
+                   {text = '' , texthl = '', linehl = '', numhl = ''})
+vim.fn.sign_define('DapBreakpointRejected',
+                   {text = '', texthl = '', linehl = '', numhl = ''})
+vim.fn.sign_define('DapStopped',
+                   {text = '󰏥', texthl = '', linehl = '', numhl = ''})
 
 vim.keymap.set('n',"<leader>tf", jester.run_file )
 vim.keymap.set('n',"<leader>rt", jester.run )
 vim.keymap.set('n',"<leader>dt", jester.debug )
+
+vim.keymap.set('n',"<leader>dr", dap.repl.open)
+vim.keymap.set('n',"<leader>sh", widgets.hover)
+vim.keymap.set('n', '<leader>de', function() dap.set_exception_breakpoints({"all"}) end)
+
 vim.keymap.set('n',"<leader>tb", dap.toggle_breakpoint)
 vim.keymap.set('n',"<leader>so", dap.step_over)
 vim.keymap.set('n',"<leader>si", dap.step_into)
+vim.keymap.set('n',"<leader>su", dap.step_out)
 vim.keymap.set('n',"<leader>cd", dap.continue )
+vim.keymap.set('n',"<leader>cb", dap.clear_breakpoints)
 vim.keymap.set('n',"<leader>td", dapui.toggle)
 
 dapui.setup({
    icons = { expanded = "↕", collapsed = "↪", current_frame = "" },
 })
 require("nvim-dap-virtual-text").setup()
+
+local HOME = os.getenv "HOME"
+local DEBUGGER_LOCATION = HOME .. "/.config/netcoredbg"
+
+dap.adapters.coreclr = {
+  type = 'executable',
+  command = DEBUGGER_LOCATION .. '/netcoredbg',
+  args = {'--interpreter=vscode'}
+}
+
+dap.configurations.cs = {
+  {
+    type = "coreclr",
+    name = "launch - netcoredbg",
+    request = "launch",
+    program = function()
+        return vim.fn.input('Path to dll', vim.fn.getcwd() .. '/bin/Debug/', 'file')
+    end,
+  },
+  {
+    type = "coreclr",
+    name = "attach - netcoredbg",
+    request = "attach",
+    processId = require('dap.utils').pick_process
+  }
+}
 
 -- CMP
 local cmp_autopairs = require('nvim-autopairs.completion.cmp')
@@ -199,8 +243,8 @@ cmp.event:on(
       end,
     },
     mapping = cmp.mapping.preset.insert({
-      ['<C-b>'] = cmp.mapping.scroll_docs(-4),
-      ['<C-f>'] = cmp.mapping.scroll_docs(4),
+      ['<C-k>'] = cmp.mapping.scroll_docs(-4),
+      ['<C-j>'] = cmp.mapping.scroll_docs(4),
       ['<C-Space>'] = cmp.mapping.complete(),
       ['<C-e>'] = cmp.mapping.abort(),
       ['<CR>'] = cmp.mapping.confirm({ select = true })}),
